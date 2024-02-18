@@ -40,10 +40,6 @@ const customIndex = ({
     .css("flex-direction", "column")
     .css("position", "relative");
 
-  $("header > img")
-    .css("border-radius", "8px")
-    .css("border", "1px solid #00000008");
-
   $("nav")
     .insertBefore("body")
     .css("position", "sticky")
@@ -142,7 +138,18 @@ const changeTitle = ({ htmlStr }: { htmlStr: string }) => {
   const viewTitle = $(".page-body > p").first().text();
   $(".page-body > p").first().remove();
 
-  $("header > h1").text(viewTitle);
+  $("header > h1").text(viewTitle).css("margin-top", "20px");
+
+  return $.html();
+};
+
+const customCoverImage = ({ htmlStr }: { htmlStr: string }) => {
+  const $ = load(htmlStr);
+
+  $("header > img")
+    .css("max-height", "40vh")
+    .css("border-radius", "8px")
+    .css("border", "1px solid #00000008");
 
   return $.html();
 };
@@ -180,8 +187,9 @@ export const parser = ({
     indexTitle,
     matchedColor,
   });
-  htmlStr = changeTitle({ htmlStr: htmlStr });
-  htmlStr = removeImgAnchor({ htmlStr: htmlStr });
+  htmlStr = changeTitle({ htmlStr });
+  htmlStr = customCoverImage({ htmlStr });
+  htmlStr = removeImgAnchor({ htmlStr });
 
   return htmlStr;
 };
