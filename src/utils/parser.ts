@@ -138,7 +138,7 @@ const changeTitle = ({ htmlStr }: { htmlStr: string }) => {
   const viewTitle = $(".page-body > p").first().text();
   $(".page-body > p").first().remove();
 
-  $("header > h1").text(viewTitle).css("margin-top", "20px");
+  $("header > h1").text(viewTitle);
 
   return $.html();
 };
