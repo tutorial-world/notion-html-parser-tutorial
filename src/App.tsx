@@ -1,89 +1,52 @@
-import { ChangeEvent, FormEvent, useState } from "react";
-import { parser } from "./utils/parser";
+import { FormEvent, useState } from "react";
+import Uploader from "./Uploader";
 
 function App() {
-  const [files, setFiles] = useState<File[] | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [srcDoc, setSrcDoc] = useState("");
-
-  const modifyFileHandler = (file: File): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        const content = e.target?.result;
-
-        if (typeof content === "string") {
-          const parsed = parser({
-            originHtmlStr: content,
-            indexTitle: "목차",
-            matchedColor: "rgb(237, 68, 66)",
-          });
-          const blob = new Blob([parsed], { type: "text/html" });
-          const newFile = new File([blob], file.name, {
-            type: blob.type,
-            lastModified: new Date().getTime(), // 현재 시간으로 lastModified 설정
-          });
-
-          resolve(newFile);
-        }
-      };
-
-      reader.onerror = reject;
-
-      reader.readAsText(file);
-    });
-  };
-
-  const onChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const _files = [];
-      for (const file of e.target.files) {
-        let _file = file;
-        if (file.type === "text/html") {
-          _file = await modifyFileHandler(file);
-        }
-        _files.push(_file);
-      }
-
-      setFiles(_files);
-    }
-  };
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(files);
-
     if (!files) return;
     for (const file of files) {
-      if (file.type !== "text/html") continue;
-
-      const reader = new FileReader();
-      reader.readAsText(file);
-      reader.onload = (e) => {
-        if (typeof e.target?.result !== "string") return;
-        setSrcDoc(e.target?.result);
-      };
+      console.log(file);
     }
   };
 
   return (
     <>
-      <div style={{ position: "fixed", top: 0, left: 0 }}>
-        <form onSubmit={onSubmit}>
-          <input
-            type="file"
-            onChange={onChange}
-            webkitdirectory="true"
-            directory="true"
-            multiple
-          />
-          <button type="submit">click</button>
-        </form>
+      <form onSubmit={onSubmit}>
+        <Uploader
+          setFiles={setFiles}
+          setSrcDoc={setSrcDoc}
+          indexTitle="목차"
+          matchIndexColor="rgb(237, 68, 66)"
+          text="폴더 업로드"
+          style={{
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            height: "40px",
+            padding: "0 10px",
+            backgroundColor: "#319795",
+            width: "fit-content",
+            borderRadius: "0.375rem",
+            color: "#ffff",
+          }}
+        />
+      </form>
+      <div style={{ margin: "100px auto 0", width: "90%", height: "70%" }}>
+        <h3>Preview</h3>
+        <iframe
+          srcDoc={srcDoc}
+          style={{
+            border: "1px solid black",
+            width: "100%",
+            height: "100%",
+            marginTop: "5px",
+          }}
+        />
       </div>
-      <iframe
-        srcDoc={srcDoc}
-        style={{ border: "none", width: "100%", height: "100%" }}
-      />
     </>
   );
 }
