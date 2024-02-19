@@ -58,6 +58,7 @@ const customIndex = ({
     .css("width", "fit-content")
     .css("height", "fit-content")
     .css("border", "none");
+  $("nav > .table_of_contents-indent-2").remove();
   $("nav > div > a")
     .css("font-size", "1em")
     .css("border", "none")
@@ -132,13 +133,44 @@ const customIndex = ({
   return $.html();
 };
 
-const changeTitle = ({ htmlStr }: { htmlStr: string }) => {
+const replaceVideo = ({ htmlStr }: { htmlStr: string }) => {
   const $ = load(htmlStr);
 
-  const viewTitle = $(".page-body > p").first().text();
-  $(".page-body > p").first().remove();
+  $("body").append(`
+    <script>
+      const videos = document.getElementsByClassName("source");
 
-  $("header > h1").text(viewTitle);
+      for (let i = 0; i < videos.length; i++) {
+        let source = videos[i].querySelector("a");
+      
+        if (source.href.includes("youtube")) {
+          let videoObject = document.createElement('iframe');
+          videoObject.src = source.href.replace("/live/", "/embed/");
+          videos[i].style.padding = "0";
+          videos[i].style.border = "none";
+          videoObject.style.width = "100%";
+          videoObject.style.aspectRatio = "1.77 / 1";
+          videoObject.style.border = "none";
+          videoObject.style.borderRadius = "3px";
+          videoObject.style.objectFit = "cover";
+          videos[i].append(videoObject);
+          source.remove();
+        } else {
+          let videoObject = document.createElement('video');
+          videos[i].style.padding = "0";
+          videos[i].style.border = "none";
+          videoObject.src = source.href;
+          videoObject.controls = true;
+          videoObject.style.width = "100%";
+          videoObject.style.border = "none";
+          videoObject.style.borderRadius = "3px";
+          videoObject.style.objectFit = "cover";
+          videos[i].append(videoObject);
+          source.remove();
+        }
+      }
+    </script>
+  `);
 
   return $.html();
 };
@@ -147,8 +179,7 @@ const customCoverImage = ({ htmlStr }: { htmlStr: string }) => {
   const $ = load(htmlStr);
 
   $("header > img")
-    .css("max-height", "40vh")
-    .css("border-radius", "8px")
+    .css("border-radius", "3px")
     .css("border", "1px solid #00000008");
 
   return $.html();
@@ -187,9 +218,9 @@ export const parser = ({
     indexTitle,
     matchedColor,
   });
-  htmlStr = changeTitle({ htmlStr });
   htmlStr = customCoverImage({ htmlStr });
   htmlStr = removeImgAnchor({ htmlStr });
+  htmlStr = replaceVideo({ htmlStr });
 
   return htmlStr;
 };

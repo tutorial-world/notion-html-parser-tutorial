@@ -1,4 +1,6 @@
 import { ChangeEvent } from "react";
+import { v4 as uuidv4 } from "uuid";
+
 import { parser } from "./utils/parser";
 
 interface Props {
@@ -31,8 +33,14 @@ const Uploader = ({
             indexTitle: indexTitle,
             matchedColor: matchIndexColor,
           });
-          const blob = new Blob([parsed], { type: "text/html" });
-          const newFile = new File([blob], file.name, {
+
+          const regex = new RegExp(
+            encodeURI(file.name.replace(".html", "")),
+            "g"
+          );
+          const removeBasePath = parsed.replace(regex, "");
+          const blob = new Blob([removeBasePath], { type: "text/html" });
+          const newFile = new File([blob], uuidv4() + ".html", {
             type: blob.type,
             lastModified: new Date().getTime(), // 현재 시간으로 lastModified 설정
           });
@@ -48,6 +56,17 @@ const Uploader = ({
     });
   };
 
+  const _unpackDirectory = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const newFile = new File([file], file.name, {
+        type: file.type,
+        lastModified: new Date().getTime(),
+      });
+
+      resolve(newFile);
+    });
+  };
+
   const onChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const _files = [];
@@ -55,6 +74,8 @@ const Uploader = ({
         let _file = file;
         if (file.type === "text/html") {
           _file = await _modifyFileHandler(file);
+        } else {
+          _file = await _unpackDirectory(file);
         }
         _files.push(_file);
       }
