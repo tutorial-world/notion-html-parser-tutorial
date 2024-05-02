@@ -12,6 +12,23 @@ interface Props {
   text?: string;
 }
 
+const getPreviewDoc = (
+  html: string,
+  originFileName: string,
+  resources: File[],
+  blobUrls: string[]
+) => {
+  const originResourceNames = resources.map(
+    (resource) => originFileName + "/" + encodeURI(resource.name)
+  );
+
+  let previewDoc = html;
+  originResourceNames.forEach((resourceName, i) => {
+    previewDoc = previewDoc.replace(new RegExp(resourceName, "g"), blobUrls[i]);
+  });
+  return previewDoc;
+};
+
 const Uploader = ({
   indexTitle,
   matchIndexColor,
@@ -20,7 +37,12 @@ const Uploader = ({
   style,
   text,
 }: Props) => {
-  const _modifyFileHandler = (file: File): Promise<File> => {
+  const _modifyFileHandler = (
+    file: File,
+    resources: File[],
+    blobResources: string[]
+  ): Promise<File> => {
+    console.log(file, resources, blobResources);
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -33,19 +55,27 @@ const Uploader = ({
             indexTitle: indexTitle,
             matchedColor: matchIndexColor,
           });
+          const originFileName = encodeURI(file.name.replace(".html", ""));
 
-          const regex = new RegExp(
-            encodeURI(file.name.replace(".html", "")),
-            "g"
+          const removeBasePath = parsed.replace(
+            new RegExp(originFileName, "g"),
+            ""
           );
-          const removeBasePath = parsed.replace(regex, "");
           const blob = new Blob([removeBasePath], { type: "text/html" });
           const newFile = new File([blob], uuidv4() + ".html", {
             type: blob.type,
             lastModified: new Date().getTime(), // 현재 시간으로 lastModified 설정
           });
 
-          setSrcDoc?.(parsed);
+          // only preview
+          const previewDoc = getPreviewDoc(
+            parsed,
+            originFileName,
+            resources,
+            blobResources
+          );
+
+          setSrcDoc?.(previewDoc);
           resolve(newFile);
         }
       };
@@ -56,28 +86,39 @@ const Uploader = ({
     });
   };
 
-  const _unpackDirectory = (file: File): Promise<File> => {
+  const _unpackDirectory = (file: File): Promise<[File, string]> => {
     return new Promise((resolve) => {
       const newFile = new File([file], file.name, {
         type: file.type,
         lastModified: new Date().getTime(),
       });
-
-      resolve(newFile);
+      resolve([newFile, URL.createObjectURL(newFile)]);
     });
   };
 
   const onChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const _files = [];
+      const _previewResources = [];
+      const _previewBlobResources = [];
       for (const file of e.target.files) {
-        let _file = file;
+        if (file.type !== "text/html") {
+          const [_file, _blobUrl] = await _unpackDirectory(file);
+          _files.push(_file);
+          _previewResources.push(_file);
+          _previewBlobResources.push(_blobUrl);
+        } else continue;
+      }
+
+      for (const file of e.target.files) {
         if (file.type === "text/html") {
-          _file = await _modifyFileHandler(file);
-        } else {
-          _file = await _unpackDirectory(file);
-        }
-        _files.push(_file);
+          const _file = await _modifyFileHandler(
+            file,
+            _previewResources,
+            _previewBlobResources
+          );
+          _files.push(_file);
+        } else continue;
       }
 
       setFiles(_files);
@@ -95,6 +136,7 @@ const Uploader = ({
         name="uploader"
         id="uploader"
         onChange={onChange}
+        // @ts-expect-error @ts-ignore
         webkitdirectory="true"
         directory="true"
         multiple
